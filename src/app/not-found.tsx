@@ -2,40 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import React from "react";
 import GridShape from "../components/common/GridShape";
 
 export default function NotFound() {
-  const router = useRouter();
-  const [isChecking, setIsChecking] = useState(true);
-
-  useEffect(() => {
-    // Check if user is authenticated
-    const storedUser = localStorage.getItem("user");
-
-    if (!storedUser) {
-      // User is not logged in, redirect to login
-      router.replace("/login");
-      return;
-    }
-
-    // User is authenticated, show 404 page
-    setIsChecking(false);
-  }, [router]);
-
-  // Show loading while checking authentication
-  if (isChecking) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen p-6 overflow-hidden z-1">
       <GridShape />

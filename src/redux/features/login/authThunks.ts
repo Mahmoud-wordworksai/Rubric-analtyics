@@ -1,29 +1,35 @@
-import { loginRequest, msalInstance } from "@/authConfig";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import type { AccountInfo } from "@azure/msal-browser";
-// import { loginRequest, msalInstance } from "../../../authConfig";
+
+const guestUser: AccountInfo = {
+  homeAccountId: "guest-user",
+  environment: "local",
+  tenantId: "guest",
+  username: "guest@example.com",
+  localAccountId: "guest-user",
+  name: "Guest User",
+} as AccountInfo;
 
 // login
 export const loginUser = createAsyncThunk<AccountInfo, string>(
   "auth/loginUser",
-  async (email, { rejectWithValue }) => {
+  async (email) => {
     try {
-      const request = { ...loginRequest, loginHint: email };
-      const res = await msalInstance.loginPopup(request);
-      if (!res.account) throw new Error("No account returned.");
-      msalInstance.setActiveAccount(res.account);
-      localStorage.setItem("user", JSON.stringify(res.account));
-      // Set flag to skip auth verification right after login
-      sessionStorage.setItem("justLoggedIn", "true");
-      return JSON.parse(JSON.stringify(res.account));
+      const user = {
+        ...guestUser,
+        username: email || guestUser.username,
+        name: email || guestUser.name,
+      } as AccountInfo;
+      localStorage.setItem("user", JSON.stringify(user));
+      return JSON.parse(JSON.stringify(user));
     } catch (error) {
-      return rejectWithValue("Azure AD login failed. " + error);
+      return JSON.parse(JSON.stringify(guestUser));
     }
   }
 );
 
 //logout
 export const logoutUser = createAsyncThunk("auth/logoutUser", async () => {
-  localStorage.clear();
+  localStorage.setItem("user", JSON.stringify(guestUser));
   return null;
 });

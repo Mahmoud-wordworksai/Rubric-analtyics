@@ -5,7 +5,6 @@ import AppHeader from "@/layout/AppHeader";
 import AppSidebar from "@/layout/AppSidebar";
 import Backdrop from "@/layout/Backdrop";
 import React, { useEffect, useState, Suspense } from "react";
-import { useAppSelector } from "@/redux/store";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
 // Inner component that uses useSearchParams
@@ -15,7 +14,6 @@ function AdminLayoutContent({
   children: React.ReactNode;
 }) {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
-  const { user } = useAppSelector((state) => state.auth);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -26,13 +24,6 @@ function AdminLayoutContent({
   useEffect(() => {
     setIsMounted(true);
   }, []);
-
-  // Additional authentication check at layout level
-  useEffect(() => {
-    if (isMounted && !user) {
-      router.replace("/login");
-    }
-  }, [user, isMounted, router]);
 
   // Route protection for non-main rooms
   useEffect(() => {

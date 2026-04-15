@@ -9,12 +9,24 @@ interface AuthState {
   error: string | null;
 }
 
-
+const guestUser: AccountInfo = {
+  homeAccountId: "guest-user",
+  environment: "local",
+  tenantId: "guest",
+  username: "guest@example.com",
+  localAccountId: "guest-user",
+  name: "Guest User",
+} as AccountInfo;
 
 const storedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
+const parsedStoredUser = storedUser ? JSON.parse(storedUser) : null;
+const normalizedStoredUser =
+  parsedStoredUser?.homeAccountId === guestUser.homeAccountId
+    ? { ...guestUser, ...parsedStoredUser, username: guestUser.username, name: guestUser.name }
+    : parsedStoredUser;
 
 const initialState: AuthState = {
-  user: storedUser ? JSON.parse(storedUser) : null,
+  user: normalizedStoredUser || guestUser,
   loading: false,
   error: null,
 };
@@ -24,11 +36,11 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     setUser: (state, action: PayloadAction<AccountInfo | null>) => {
-      state.user = action.payload;
+      state.user = action.payload || guestUser;
     },
     clearUser: (state) => {
-      state.user = null;
-      localStorage.removeItem("user");
+      state.user = guestUser;
+      localStorage.setItem("user", JSON.stringify(guestUser));
     },
   },
   extraReducers: (builder) => {
@@ -47,8 +59,8 @@ const authSlice = createSlice({
         state.error = action.payload as string;
       })
       .addCase(logoutUser.fulfilled, (state) => {
-        state.user = null;
-        localStorage.removeItem("user");
+        state.user = guestUser;
+        localStorage.setItem("user", JSON.stringify(guestUser));
       });
   },
 });

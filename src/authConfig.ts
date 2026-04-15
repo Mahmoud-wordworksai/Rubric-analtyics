@@ -1,11 +1,15 @@
 import { PublicClientApplication } from "@azure/msal-browser";
 
+const browserOrigin = typeof window !== "undefined" ? window.location.origin : "";
+const redirectUri = process.env.NEXT_PUBLIC_AZURE_REDIRECT_URI || browserOrigin;
+
 export const msalConfig = {
   auth: {
     clientId: "463f10d1-8d99-4de8-bedd-b9b9c775d0e1", //client Id
     authority:
       "https://login.microsoftonline.com/a0ced141-38cb-47e3-8c33-2458ecae7f0c", //tenant Id
-    redirectUri: typeof window !== "undefined" ? window.location.origin : "",
+    redirectUri,
+    postLogoutRedirectUri: redirectUri,
   },
   cache: {
     cacheLocation: "localStorage",
