@@ -11,7 +11,7 @@ import { Users, BarChart, Settings, ChevronDownIcon, Files, LayoutDashboard, Coi
 import AuthContent from "@/components/auth/auth";
 import { useAppDispatch, useAppSelector } from "@/redux/store";
 import { setAvailableRooms } from "@/redux/features/room";
-import { API_BASE_URL } from "@/constants";
+import { API_BASE_URL, API_REQUEST_HEADERS } from "@/constants";
 import { useRoomAPI } from "../hooks/useRoomAPI";
 
 
@@ -150,7 +150,7 @@ const AppSidebar: React.FC = () => {
     const fetchRooms = async () => {
       try {
         const url = appendRoomParamWithMain(`${API_BASE_URL}/list-agent-rooms?api_key=dsfiuhdiufnf78y78hnuhf87eryiwe`);
-        const response = await fetch(url);
+        const response = await fetch(url, { headers: API_REQUEST_HEADERS });
         const result = await response.json();
         if (result.status === 'success' && Array.isArray(result.data)) {
           // Extract room names from the data array

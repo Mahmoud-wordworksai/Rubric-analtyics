@@ -1,5 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
-import { API_BASE_URL, API_KEY } from "@/constants";
+import { API_BASE_URL, API_KEY, API_REQUEST_HEADERS } from "@/constants";
 
 const DEFAULT_PROJECT = process.env.NEXT_PUBLIC_DEFAULT_PROJECT || "tata-capital";
 
@@ -42,6 +42,7 @@ const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
+    ...API_REQUEST_HEADERS,
   },
 });
 

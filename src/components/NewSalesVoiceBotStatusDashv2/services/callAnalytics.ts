@@ -1,5 +1,5 @@
 import axios from "axios";
-import { API_BASE_URL, API_KEY } from "@/constants";
+import { API_BASE_URL, API_KEY, API_REQUEST_HEADERS } from "@/constants";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -42,7 +42,8 @@ const unwrapResponse = <T,>(response: { data?: any }): T => {
 
 export const getCampaignReportSummary = async (executionId: string) => {
   const response = await axios.get(
-    withApiKey(`${API_BASE_URL}/call-analytics/campaign-report/${executionId}/summary`)
+    withApiKey(`${API_BASE_URL}/call-analytics/campaign-report/${executionId}/summary`),
+    { headers: API_REQUEST_HEADERS }
   );
 
   return unwrapResponse<CampaignReportResponse>(response);
@@ -50,7 +51,8 @@ export const getCampaignReportSummary = async (executionId: string) => {
 
 export const getCampaignReport = async (executionId: string) => {
   const response = await axios.get(
-    withApiKey(`${API_BASE_URL}/call-analytics/campaign-report/${executionId}`)
+    withApiKey(`${API_BASE_URL}/call-analytics/campaign-report/${executionId}`),
+    { headers: API_REQUEST_HEADERS }
   );
 
   return unwrapResponse<CampaignReportResponse>(response);
@@ -58,7 +60,9 @@ export const getCampaignReport = async (executionId: string) => {
 
 export const generateCampaignReport = async (executionId: string) => {
   const response = await axios.post(
-    withApiKey(`${API_BASE_URL}/call-analytics/campaign-report/generate/${executionId}`)
+    withApiKey(`${API_BASE_URL}/call-analytics/campaign-report/generate/${executionId}`),
+    undefined,
+    { headers: API_REQUEST_HEADERS }
   );
 
   return unwrapResponse<CampaignReportResponse>(response);
@@ -108,7 +112,8 @@ const buildEvaluationPayload = (payload: Record<string, any>) => {
 export const evaluateSingleCall = async (payload: Record<string, any>) => {
   const response = await axios.post(
     withApiKey(`${API_BASE_URL}/call-analytics/evaluate`),
-    buildEvaluationPayload(payload)
+    buildEvaluationPayload(payload),
+    { headers: API_REQUEST_HEADERS }
   );
 
   const data = unwrapResponse<SingleCallEvaluationResponse>(response);
@@ -153,19 +158,25 @@ const buildReportQueryParams = (filters: ReportFilters = {}) => {
 
 export const getPeriodReportSummary = async (filters: ReportFilters = {}) => {
   const query = buildReportQueryParams(filters);
-  const response = await axios.get(`${API_BASE_URL}/call-analytics/reports/summary?${query}`);
+  const response = await axios.get(`${API_BASE_URL}/call-analytics/reports/summary?${query}`, {
+    headers: API_REQUEST_HEADERS,
+  });
   return unwrapResponse<CampaignReportResponse>(response);
 };
 
 export const getPeriodReport = async (filters: ReportFilters = {}) => {
   const query = buildReportQueryParams(filters);
-  const response = await axios.get(`${API_BASE_URL}/call-analytics/reports?${query}`);
+  const response = await axios.get(`${API_BASE_URL}/call-analytics/reports?${query}`, {
+    headers: API_REQUEST_HEADERS,
+  });
   return unwrapResponse<CampaignReportResponse>(response);
 };
 
 export const generatePeriodReport = async (filters: ReportFilters = {}) => {
   const query = buildReportQueryParams(filters);
-  const response = await axios.post(`${API_BASE_URL}/call-analytics/reports/generate?${query}`);
+  const response = await axios.post(`${API_BASE_URL}/call-analytics/reports/generate?${query}`, undefined, {
+    headers: API_REQUEST_HEADERS,
+  });
   return unwrapResponse<CampaignReportResponse>(response);
 };
 

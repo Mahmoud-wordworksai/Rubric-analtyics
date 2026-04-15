@@ -2,7 +2,7 @@
 
 import React, { createContext, useState, useContext, useEffect, useCallback } from "react";
 import axiosInstance from "@/lib/axios";
-import { API_BASE_URL } from "../constants";
+import { API_BASE_URL, API_REQUEST_HEADERS } from "../constants";
 import { useRoomAPI } from "../hooks/useRoomAPI";
 
 type BasicInfo = {
@@ -89,7 +89,7 @@ export const BasicInfoProvider: React.FC<{ children: React.ReactNode }> = ({
 
     try {
       const url = appendRoomParamWithMain(`${API_BASE_URL}/templates/basic`);
-      const response = await axiosInstance.get(url);
+      const response = await axiosInstance.get(url, { headers: API_REQUEST_HEADERS });
 
       if (response.data.status === "success" && response.data.template) {
         const basicTemplate = response.data.template;
