@@ -82,7 +82,7 @@ const AuthContent = ({ isMobileOpen, isExpanded, isHovered }: {
             </>
           )}
         </div>
-      )}
+      ) : null}
     </div>
   );
 };
