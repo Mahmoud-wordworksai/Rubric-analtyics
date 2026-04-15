@@ -25,7 +25,8 @@ const getProjectFromUrl = (): string => {
   if (
     hostname === "localhost" ||
     hostname === "127.0.0.1" ||
-    hostname.endsWith(".local")
+    hostname.endsWith(".local") ||
+    hostname.endsWith(".vercel.app")
   ) {
     return DEFAULT_PROJECT;
   }
