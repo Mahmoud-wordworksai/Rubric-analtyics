@@ -100,14 +100,9 @@ const category = [
 
 const category1 = [
   {
-      "id": "LRx3AvWNisjerioniewnr",
-      "name": "Dashboard",
-      "slug": "dashboard"
-  },
-  {
-      "id": "LRx3AvWNNwNP3SgvU9cd",
-      "name": "Projects",
-      "slug": "projects"
+      "id": "callreport89u89ioif",
+      "name": "Rubric Analytics",
+      "slug": "rubric-analytics"
   },
 ];
 
@@ -188,6 +183,8 @@ const AppSidebar: React.FC = () => {
         return <LayoutDashboard {...iconProps} />
       case "projects":
         return <Files {...iconProps} />
+      case "rubric-analytics":
+        return <BarChart {...iconProps} />;
       case "analyze":
         return <BarChart {...iconProps} />;
       case "room-and-agents":
@@ -236,7 +233,7 @@ const AppSidebar: React.FC = () => {
     const roomOnlySlugs = ['settings', 'datasheets-template', 'prompts-and-post-call-analysis', 'test-call'];
 
     // Sections that should always be visible (in main and all rooms)
-    const alwaysVisibleSlugs = ['dashboard', 'projects'];
+    const alwaysVisibleSlugs = ['rubric-analytics'];
 
     // Sections that should be hidden in main and room, but shown in all other rooms
     const hideInMainAndRoomSlugs = ['app-templates'];

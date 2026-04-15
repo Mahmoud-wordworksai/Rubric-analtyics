@@ -42,7 +42,7 @@ import { useEffect } from "react";
 const Home = () => {
   const router = useRouter();
   useEffect(() => {
-    router.push("/projects");
+    router.push("/rubric-analytics");
   }, [router]);
 
   return (
