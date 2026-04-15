@@ -1,7 +1,25 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
-import { API_BASE_URL, API_KEY, API_REQUEST_HEADERS } from "@/constants";
+import { API_BASE_URL, API_KEY, API_REQUEST_HEADERS, IS_NGROK_BACKEND } from "@/constants";
 
 const DEFAULT_PROJECT = process.env.NEXT_PUBLIC_DEFAULT_PROJECT || "tata-capital";
+
+// Determine if we should use the local proxy to bypass CORS
+// Use proxy when: on Vercel (production) AND backend is ngrok
+const shouldUseProxy = (): boolean => {
+  if (typeof window === "undefined") return false;
+  const hostname = window.location.hostname;
+  const isVercel = hostname.endsWith(".vercel.app") || hostname.includes("vercel.app");
+  return isVercel && IS_NGROK_BACKEND;
+};
+
+// Get the effective base URL
+const getEffectiveBaseUrl = (): string => {
+  if (shouldUseProxy()) {
+    // Use local proxy - empty string means relative to current origin
+    return "";
+  }
+  return API_BASE_URL;
+};
 
 // Get room from URL search params
 const getRoomFromUrl = (): string | null => {
@@ -25,9 +43,13 @@ const getProjectFromUrl = (): string => {
   if (
     hostname === "localhost" ||
     hostname === "127.0.0.1" ||
-    hostname.endsWith(".local") ||
-    hostname.endsWith(".vercel.app")
+    hostname.endsWith(".local")
   ) {
+    return DEFAULT_PROJECT;
+  }
+  
+  // For Vercel deployments, also use default project
+  if (hostname.endsWith(".vercel.app") || hostname.includes("vercel.app")) {
     return DEFAULT_PROJECT;
   }
 
@@ -39,11 +61,26 @@ const getProjectFromUrl = (): string => {
 
 // Create axios instance with base configuration
 const axiosInstance = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: getEffectiveBaseUrl(),
   headers: {
     "Content-Type": "application/json",
     ...API_REQUEST_HEADERS,
   },
+});
+
+// Request interceptor to add proxy prefix for ngrok backends on Vercel
+axiosInstance.interceptors.request.use((config) => {
+  if (shouldUseProxy() && config.url) {
+    let url = config.url;
+    // Strip API_BASE_URL prefix if present (for URLs that include full URL)
+    if (url.startsWith(API_BASE_URL)) {
+      url = url.slice(API_BASE_URL.length);
+    }
+    // Remove leading slash if present to avoid double slashes
+    url = url.startsWith("/") ? url.slice(1) : url;
+    config.url = `/api/ngrok-proxy/${url}`;
+  }
+  return config;
 });
 
 const getUrlObject = (url: string | undefined): URL | null => {

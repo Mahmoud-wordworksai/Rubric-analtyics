@@ -11,8 +11,21 @@ import { Users, BarChart, Settings, ChevronDownIcon, Files, LayoutDashboard, Coi
 import AuthContent from "@/components/auth/auth";
 import { useAppDispatch, useAppSelector } from "@/redux/store";
 import { setAvailableRooms } from "@/redux/features/room";
-import { API_BASE_URL, API_REQUEST_HEADERS } from "@/constants";
+import { API_BASE_URL, API_REQUEST_HEADERS, IS_NGROK_BACKEND } from "@/constants";
 import { useRoomAPI } from "../hooks/useRoomAPI";
+
+// Helper to build proxy URL for ngrok backends on Vercel
+const buildProxyUrl = (path: string): string => {
+  if (typeof window === "undefined") return `${API_BASE_URL}${path}`;
+  const hostname = window.location.hostname;
+  const isVercel = hostname.endsWith(".vercel.app") || hostname.includes("vercel.app");
+  if (isVercel && IS_NGROK_BACKEND) {
+    // Use local proxy
+    const cleanPath = path.startsWith("/") ? path.slice(1) : path;
+    return `/api/ngrok-proxy/${cleanPath}`;
+  }
+  return `${API_BASE_URL}${path}`;
+};
 
 
 const category = [
@@ -149,8 +162,9 @@ const AppSidebar: React.FC = () => {
   useEffect(() => {
     const fetchRooms = async () => {
       try {
-        const url = appendRoomParamWithMain(`${API_BASE_URL}/list-agent-rooms?api_key=dsfiuhdiufnf78y78hnuhf87eryiwe`);
-        const response = await fetch(url, { headers: API_REQUEST_HEADERS });
+        const baseUrl = buildProxyUrl("/list-agent-rooms?api_key=dsfiuhdiufnf78y78hnuhf87eryiwe");
+        const url = appendRoomParamWithMain(baseUrl);
+        const response = await fetch(url, { headers: API_REQUEST_HEADERS as Record<string, string> });
         const result = await response.json();
         if (result.status === 'success' && Array.isArray(result.data)) {
           // Extract room names from the data array
