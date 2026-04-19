@@ -25,7 +25,7 @@ type BasicInfoContextType = {
 const defaultBasicInfo: BasicInfo = {
   title: "Voice AI Solutions Dashboard",
   description: "Voice AI Solutions Dashboard",
-  sidebarTitle: "",
+  sidebarTitle: "WWAI",
   isLogo: false,
   logoUrl: "",
   favicon: "",
@@ -97,7 +97,7 @@ export const BasicInfoProvider: React.FC<{ children: React.ReactNode }> = ({
         const newBasicInfo: BasicInfo = {
           title: basicTemplate?.title || defaultBasicInfo.title,
           description: basicTemplate?.description || defaultBasicInfo.description,
-          sidebarTitle: basicTemplate?.sidebarTitle || defaultBasicInfo.sidebarTitle,
+          sidebarTitle: "WWAI",
           isLogo: basicTemplate?.isLogo || false,
           logoUrl: basicTemplate?.logoUrl || "",
           favicon: basicTemplate?.favicon || basicTemplate?.logoUrl || "",

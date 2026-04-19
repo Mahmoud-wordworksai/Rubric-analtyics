@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import dayjs, { Dayjs } from 'dayjs';
 import type {
   CallEvaluation,
   DetailedCallAnalyticsItem,
@@ -16,6 +17,7 @@ import {
   Button,
   Card,
   Col,
+  DatePicker,
   Empty,
   Modal,
   Progress,
@@ -40,8 +42,33 @@ import {
   CheckCircleOutlined,
 } from '@ant-design/icons';
 import APIService from '@/APIServices';
+import { getProjectFromUrl } from '@/lib/axios';
 
 const { Text } = Typography;
+const { RangePicker } = DatePicker;
+
+const FALLBACK_CUSTOMER_PROJECTS = [
+  'agrim',
+  'bajaj',
+  'cipla',
+  'cred',
+  'dbs_mintek',
+  'dubai_expats',
+  'ecofy',
+  'hdfc',
+  'it_cart',
+  'kissht',
+  'micro_fi',
+  'mktg_micro_fi',
+  'multify',
+  'opus',
+  'salesbot',
+  'shubham_housing',
+  'smart_dial',
+  'ugro',
+  'voicebot',
+  'wwai_test',
+];
 
 const getQualityLabel = (percent: number) => {
   if (percent >= 75) return { label: 'Excellent', color: 'green' };
@@ -59,6 +86,11 @@ const formatDate = (value?: string | null) => {
 const formatMetricLabel = (value: string) =>
   value
     .replace(/_/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+const formatProjectLabel = (value: string) =>
+  value
+    .replace(/[-_]/g, ' ')
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
 const getTopMetric = (metrics?: Record<string, number>) => {
@@ -738,6 +770,18 @@ const ApiAnalyticsTab = () => {
 };
 
 const RubricAnalyticsDashboard = () => {
+  const customerOptions = useMemo(() => {
+    const configured = (process.env.NEXT_PUBLIC_RUBRIC_CUSTOMERS || '')
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    const projects = configured.length > 0 ? configured : FALLBACK_CUSTOMER_PROJECTS;
+    return projects.map((project) => ({
+      label: formatProjectLabel(project),
+      value: project,
+    }));
+  }, []);
   const [executions, setExecutions] = useState<ExecutionListItemLite[]>([]);
   const [campaigns, setCampaigns] = useState<RubricCampaignAnalytics[]>([]);
   const [selectedExecutionId, setSelectedExecutionId] = useState<string>();
@@ -770,6 +814,8 @@ const RubricAnalyticsDashboard = () => {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
   const [selectedWeek, setSelectedWeek] = useState<number>(getWeekNumber(new Date()));
+  const [selectedProject, setSelectedProject] = useState<string>(getProjectFromUrl());
+  const [customDateRange, setCustomDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const executionLookup = useMemo(
@@ -809,12 +855,20 @@ const RubricAnalyticsDashboard = () => {
     });
   }, []);
 
+  const syncProjectToUrl = useCallback((project: string) => {
+    if (typeof window === 'undefined') return;
+    const nextUrl = new URL(window.location.href);
+    nextUrl.searchParams.set('project', project);
+    window.history.replaceState({}, '', nextUrl.toString());
+  }, []);
+
 
   const loadOverview = useCallback(async () => {
     setLoadingOverview(true);
     setError(null);
 
     try {
+      syncProjectToUrl(selectedProject);
       const params = getReportParamsByPeriod(periodType, selectedYear, selectedMonth, selectedWeek);
       const [reportResult, summaryResult] = await Promise.allSettled([
         APIService.CallAnalyticsService.getNormalizedRubricPeriodReport(params),
@@ -902,7 +956,7 @@ const RubricAnalyticsDashboard = () => {
     } finally {
       setLoadingOverview(false);
     }
-  }, [selectedExecutionId, periodType, selectedYear, selectedMonth, selectedWeek]);
+  }, [selectedExecutionId, periodType, selectedProject, selectedYear, selectedMonth, selectedWeek, syncProjectToUrl]);
 
 
   const loadCampaignDetail = useCallback(async (executionId: string) => {
@@ -935,7 +989,66 @@ const RubricAnalyticsDashboard = () => {
     loadCampaignDetail(selectedExecutionId);
   }, [loadCampaignDetail, selectedExecutionId]);
 
+  const filteredCampaigns = useMemo(() => {
+    if (!customDateRange?.[0] || !customDateRange?.[1]) {
+      return campaigns;
+    }
+
+    const start = customDateRange[0].startOf('day').valueOf();
+    const end = customDateRange[1].endOf('day').valueOf();
+
+    return campaigns.filter((campaign) => {
+      const sourceDate = campaign.updated_at || campaign.created_at;
+      if (!sourceDate) return false;
+      const timestamp = new Date(sourceDate).getTime();
+      if (Number.isNaN(timestamp)) return false;
+      return timestamp >= start && timestamp <= end;
+    });
+  }, [campaigns, customDateRange]);
+
+  useEffect(() => {
+    if (filteredCampaigns.length === 0) {
+      setSelectedExecutionId(undefined);
+      setSelectedCampaign(null);
+      setDetailedCalls([]);
+      return;
+    }
+
+    if (!selectedExecutionId || !filteredCampaigns.some((item) => item.execution_id === selectedExecutionId)) {
+      setSelectedExecutionId(filteredCampaigns[0]?.execution_id);
+      setSelectedCampaign(filteredCampaigns[0] || null);
+      return;
+    }
+
+    setSelectedCampaign(filteredCampaigns.find((item) => item.execution_id === selectedExecutionId) || null);
+  }, [filteredCampaigns, selectedExecutionId]);
+
   const overviewStats = useMemo(() => {
+    const hasCustomDateRange = Boolean(customDateRange?.[0] && customDateRange?.[1]);
+    const visibleCampaigns = filteredCampaigns;
+
+    if (hasCustomDateRange) {
+      const scoredCampaigns = visibleCampaigns.filter((campaign) => campaign.analytics.summary.percent > 0);
+      const totalCalls = visibleCampaigns.reduce(
+        (sum, campaign) => sum + (campaign.total_calls ?? campaign.analytics.total_calls ?? 0),
+        0
+      );
+      const averageScore = visibleCampaigns.length > 0
+        ? visibleCampaigns.reduce((sum, campaign) => sum + campaign.analytics.summary.percent, 0) / visibleCampaigns.length
+        : 0;
+
+      return {
+        totalCampaigns: visibleCampaigns.length,
+        scoredCampaigns: scoredCampaigns.length,
+        calls: totalCalls,
+        averageScore,
+        good: visibleCampaigns.filter((campaign) => campaign.analytics.summary.percent >= 75).length,
+        average: visibleCampaigns.filter((campaign) => campaign.analytics.summary.percent >= 50 && campaign.analytics.summary.percent < 75).length,
+        poor: visibleCampaigns.filter((campaign) => campaign.analytics.summary.percent > 0 && campaign.analytics.summary.percent < 50).length,
+        unscored: Math.max(0, visibleCampaigns.length - scoredCampaigns.length),
+      };
+    }
+
     // KPI cards always show PERIOD TOTALS for the selected month/year/week
     // Individual campaign selection only affects the drill-down view below
     const loadedCampaigns = campaigns.length > 0 ? campaigns : [];
@@ -970,7 +1083,7 @@ const RubricAnalyticsDashboard = () => {
       poor: poorCount,
       unscored: unscoredCount > 0 ? unscoredCount : 0,
     };
-  }, [campaigns, executions.length, storedReportOverview]);
+  }, [campaigns, customDateRange, executions.length, filteredCampaigns, storedReportOverview]);
 
   const campaignColumns = [
     {
@@ -1017,7 +1130,7 @@ const RubricAnalyticsDashboard = () => {
     <div className="space-y-6 p-4 md:p-8">
       <div>
         <h1 className="mb-2 text-3xl font-bold" style={{ color: '#263978' }}>
-          Rubric Analytics Dashboard
+          WWAI Rubric Analytics Dashboard
         </h1>
         <p className="text-gray-600">
           Stored rubric analytics reports with campaign drill-down.
@@ -1064,6 +1177,15 @@ const RubricAnalyticsDashboard = () => {
 
       <Card title="Campaign Overview">
         <div className="mb-4 flex flex-wrap items-center gap-3">
+          <span className="text-gray-600">Customer:</span>
+          <Select
+            value={selectedProject}
+            onChange={(value) => setSelectedProject(value)}
+            options={customerOptions}
+            showSearch
+            optionFilterProp="label"
+            style={{ width: 220 }}
+          />
           <span className="text-gray-600">Period:</span>
           <Select
             value={periodType}
@@ -1122,6 +1244,13 @@ const RubricAnalyticsDashboard = () => {
               style={{ width: 120 }}
             />
           )}
+
+          <span className="text-gray-600">Custom Dates:</span>
+          <RangePicker
+            value={customDateRange}
+            onChange={(value) => setCustomDateRange(value)}
+            allowClear
+          />
           
           <Button icon={<ReloadOutlined />} onClick={loadOverview} loading={loadingOverview} size="small">
             Apply
@@ -1131,12 +1260,14 @@ const RubricAnalyticsDashboard = () => {
           <Skeleton active paragraph={{ rows: 6 }} />
         ) : error ? (
           <Alert message="Failed to load data" description={error} type="error" showIcon />
-        ) : campaigns.length === 0 ? (
-          <Empty description={`No campaign rubric analytics found for ${periodType} ${selectedYear}${periodType !== 'yearly' ? `-${selectedMonth}` : ''}`} />
+        ) : filteredCampaigns.length === 0 ? (
+          <Empty
+            description={`No campaign rubric analytics found for ${formatProjectLabel(selectedProject)} in ${periodType} ${selectedYear}${periodType !== 'yearly' ? `-${selectedMonth}` : ''}`}
+          />
         ) : (
           <Table<RubricCampaignAnalytics>
             columns={campaignColumns}
-            dataSource={campaigns}
+            dataSource={filteredCampaigns}
             rowKey="execution_id"
             pagination={{ pageSize: 8 }}
             onRow={(record) => ({
